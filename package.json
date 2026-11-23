@@ -16,6 +16,7 @@
     "admin:create": "payload run src/scripts/bootstrap-admin.ts"
   },
   "dependencies": {
+    "@payloadcms/db-postgres": "4.0.0-beta.11",
     "@payloadcms/figma": "1.0.0-beta.4",
     "@payloadcms/next": "4.0.0-beta.11",
     "@payloadcms/plugin-cloud-storage": "4.0.0-beta.11",
