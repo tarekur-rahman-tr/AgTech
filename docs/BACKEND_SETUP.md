@@ -6,10 +6,12 @@ This project uses Next.js, Payload CMS, and PostgreSQL (Neon). The existing fron
 
 Create or update `.env.local` in the project root (the same folder as `package.json`). Do not commit this file.
 
-Keep the Neon connection string already created for this project:
+Create a separate **development branch** in Neon and use that branch's connection string locally. Keep the existing `production` branch for the deployed app. Payload's PostgreSQL adapter automatically pushes schema changes in development mode, so do not point local development at a production database.
+
+Use the development branch connection string here:
 
 ```env
-DATABASE_URL="YOUR_NEON_POSTGRES_CONNECTION_STRING"
+DATABASE_URL="YOUR_NEON_DEVELOPMENT_BRANCH_CONNECTION_STRING"
 ```
 
 Generate a separate Payload secret in PowerShell:
@@ -93,7 +95,7 @@ Development can synchronize the schema automatically. Before deploying to produc
 & "$env:APPDATA\npm\pnpm.cmd" db:migrate:create
 ```
 
-Commit the generated migration files to GitHub. On the production environment, set `DATABASE_URL` and a strong `PAYLOAD_SECRET`, then run:
+Commit the generated migration files to GitHub. On the production environment, set `DATABASE_URL` to the Neon **production branch** connection string and set a strong `PAYLOAD_SECRET`, then run:
 
 ```powershell
 & "$env:APPDATA\npm\pnpm.cmd" db:migrate
