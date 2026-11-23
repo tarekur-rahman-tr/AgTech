@@ -345,6 +345,8 @@ function Header({
   language,
   onToggleTheme,
   onToggleLanguage,
+  isAuthenticated,
+  onSignOut,
 }: {
   page: Page
   go: (p: Page) => void
@@ -353,6 +355,8 @@ function Header({
   language: Language
   onToggleTheme: () => void
   onToggleLanguage: () => void
+  isAuthenticated: boolean
+  onSignOut: () => void
 }) {
   const t = useTranslation()
   const [open, setOpen] = useState(false)
@@ -610,15 +614,27 @@ function Header({
             <span>{language === 'bn' ? 'EN' : 'বাংলা'}</span>
           </button>
         </div>
-        <button className={onHome ? 'ghost-light' : 'ghost-dark'} onClick={() => go('Login')}>
-          {t('Sign in')}
-        </button>
+        {!isAuthenticated ? (
+          <button className={onHome ? 'ghost-light' : 'ghost-dark'} onClick={() => go('Login')}>
+            {t('Sign in')}
+          </button>
+        ) : (
+          <button className={onHome ? 'ghost-light' : 'ghost-dark'} onClick={onSignOut}>
+            Sign out
+          </button>
+        )}
         <button
           className="lime-btn small account-chip"
-          onClick={() => go(onHome ? 'Login' : 'Profile')}
-          title={onHome ? t('Join AgTech') : `${role} account`}
+          onClick={() => go(isAuthenticated ? 'Profile' : 'Login')}
+          title={isAuthenticated ? `${role} account` : t('Join AgTech')}
         >
-          {onHome ? 'Join AgTech' : role === 'Farmer' ? 'MR' : role === 'Agronomist' ? 'DA' : 'BF'}
+          {isAuthenticated
+            ? role === 'Farmer'
+              ? 'MR'
+              : role === 'Agronomist'
+                ? 'DA'
+                : 'BF'
+            : 'Join AgTech'}
         </button>
         <button className="menu-btn" onClick={() => setOpen(!open)} aria-label="Toggle menu">
           <Icon name={open ? 'close' : 'menu'} />
@@ -4305,6 +4321,99 @@ function Login({
 }) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [role, setRole] = useState<AccountRole>('Farmer')
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async () => {
+    if (busy) return
+    setError('')
+    if (!email.trim() || !password) {
+      setError('Enter your email address and password.')
+      return
+    }
+    if (mode === 'register' && !fullName.trim()) {
+      setError('Enter your full name.')
+      return
+    }
+    if (password.length < 8) {
+      setError('Your password must contain at least 8 characters.')
+      return
+    }
+
+    setBusy(true)
+    try {
+      if (mode === 'register') {
+        const registerResponse = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            fullName: fullName.trim(),
+            email: email.trim().toLowerCase(),
+            password,
+            phone: phone.trim() || undefined,
+            requestedRole: role.toLowerCase(),
+          }),
+        })
+        const registerData = await registerResponse.json().catch(() => ({}))
+        if (!registerResponse.ok) {
+          const message =
+            registerData.errors?.[0]?.message ||
+            registerData.message ||
+            'We could not create your account. Check your details and try again.'
+          throw new Error(message)
+        }
+      }
+
+      const loginResponse = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      })
+      const loginData = await loginResponse.json().catch(() => ({}))
+      if (!loginResponse.ok) {
+        const message =
+          loginData.errors?.[0]?.message ||
+          loginData.message ||
+          'Sign in failed. Check your email and password.'
+        throw new Error(message)
+      }
+
+      const user = loginData.user ?? loginData.doc
+      const serverRole = String(user?.role || 'farmer').toLowerCase()
+      const verifiedRole: AccountRole =
+        serverRole === 'agronomist'
+          ? 'Agronomist'
+          : serverRole === 'business'
+            ? 'Business'
+            : 'Farmer'
+
+      onAuthenticate(verifiedRole)
+      if (mode === 'register' && role !== 'Farmer' && verifiedRole === 'Farmer') {
+        notify('Account created. Your requested professional role needs administrator approval.')
+      } else {
+        notify(mode === 'login' ? 'You are signed in.' : 'Your AgTech account is ready.')
+      }
+      go('Dashboard')
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'Something went wrong. Please try again.',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="auth-page">
       <div className="auth-visual">
@@ -4335,65 +4444,105 @@ function Login({
             : 'Choose your role and join the AgTech community.'}
         </p>
         <div className="auth-tabs">
-          <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>
+          <button
+            className={mode === 'login' ? 'active' : ''}
+            onClick={() => {
+              setMode('login')
+              setError('')
+            }}
+          >
             Sign in
           </button>
           <button
             className={mode === 'register' ? 'active' : ''}
-            onClick={() => setMode('register')}
+            onClick={() => {
+              setMode('register')
+              setError('')
+            }}
           >
             Register
           </button>
         </div>
-        <label className="form-label">
-          {mode === 'register' ? 'I am joining as' : 'Sign in to workspace'}
-        </label>
-        <div className="role-grid">
-          {(
-            [
-              ['Farmer', 'leaf'],
-              ['Agronomist', 'users'],
-              ['Business', 'store'],
-            ] as const
-          ).map(([r, i]) => (
-            <button className={role === r ? 'active' : ''} onClick={() => setRole(r)} key={r}>
-              <Icon name={i} />
-              <span>{r}</span>
-            </button>
-          ))}
-        </div>
         {mode === 'register' && (
-          <label>
-            <span>Full name</span>
-            <input placeholder="Your full name" />
-          </label>
+          <>
+            <label className="form-label">I am joining as</label>
+            <div className="role-grid">
+              {(
+                [
+                  ['Farmer', 'leaf'],
+                  ['Agronomist', 'users'],
+                  ['Business', 'store'],
+                ] as const
+              ).map(([r, i]) => (
+                <button
+                  className={role === r ? 'active' : ''}
+                  onClick={() => setRole(r)}
+                  key={r}
+                  type="button"
+                >
+                  <Icon name={i} />
+                  <span>{r}</span>
+                </button>
+              ))}
+            </div>
+            <label>
+              <span>Full name</span>
+              <input
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                placeholder="Your full name"
+                autoComplete="name"
+              />
+            </label>
+            <label>
+              <span>Mobile number (optional)</span>
+              <input
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="+880 1XXX XXXXXX"
+                autoComplete="tel"
+              />
+            </label>
+          </>
         )}
         <label>
-          <span>Mobile number or email</span>
-          <input placeholder="+880 1XXX XXXXXX" />
+          <span>Email address</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
         </label>
         <label>
           <span>Password</span>
-          <input type="password" placeholder="At least 8 characters" />
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="At least 8 characters"
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+            minLength={8}
+          />
         </label>
-        {mode === 'login' && (
-          <div className="form-helper">
-            <label>
-              <input type="checkbox" /> Remember me
-            </label>
-            <button>Forgot password?</button>
-          </div>
+        {error && (
+          <p role="alert" style={{ color: '#b42318', fontSize: 13, lineHeight: 1.5 }}>
+            {error}
+          </p>
         )}
-        <Button
-          onClick={() => {
-            notify(mode === 'login' ? `${role} workspace opened.` : `${role} account created.`)
-            onAuthenticate(role)
-            go('Dashboard')
-          }}
-        >
-          {mode === 'login' ? 'Sign in to AgTech' : 'Create my account'} <Icon name="arrow" />
+        <Button onClick={() => void submit()}>
+          {busy
+            ? 'Please wait...'
+            : mode === 'login'
+              ? 'Sign in to AgTech'
+              : 'Create my account'}{' '}
+          <Icon name="arrow" />
         </Button>
-        <p className="terms">By continuing, you agree to AgTech’s Terms and Privacy Policy.</p>
+        <p className="terms">
+          By continuing, you agree to AgTech’s Terms and Privacy Policy. Authentication is handled
+          securely by AgTech.
+        </p>
       </div>
     </div>
   )
@@ -4463,9 +4612,37 @@ function Footer({ go }: { go: (p: Page) => void }) {
 export default function App() {
   const [page, setPage] = useState<Page>('Home')
   const [accountRole, setAccountRole] = useState<AccountRole>('Farmer')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [toast, setToast] = useState('')
   const [theme, setTheme] = useState<Theme>('light')
   const [language, setLanguage] = useState<Language>('en')
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/users/me', { credentials: 'include' })
+      .then(async (response) => {
+        if (!response.ok) return null
+        return response.json()
+      })
+      .then((data) => {
+        if (!active || !data?.user) return
+        const serverRole = String(data.user.role || 'farmer').toLowerCase()
+        setAccountRole(
+          serverRole === 'agronomist'
+            ? 'Agronomist'
+            : serverRole === 'business'
+              ? 'Business'
+              : 'Farmer',
+        )
+        setIsAuthenticated(true)
+      })
+      .catch(() => {
+        // A visitor without a session is expected to receive an auth response.
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('agtech-theme')
@@ -4495,6 +4672,21 @@ export default function App() {
     setToast(s)
     window.setTimeout(() => setToast(''), 3000)
   }
+  const signOut = async () => {
+    try {
+      const response = await fetch('/api/users/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (!response.ok) throw new Error('Sign out failed')
+      setIsAuthenticated(false)
+      setAccountRole('Farmer')
+      notify('You have signed out.')
+      go('Home')
+    } catch {
+      notify('Could not sign out. Please try again.')
+    }
+  }
   return (
     <LanguageContext.Provider value={language}>
       <div className={`app-shell theme-${theme} language-${language}`}>
@@ -4507,6 +4699,8 @@ export default function App() {
             language={language}
             onToggleTheme={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))}
             onToggleLanguage={() => setLanguage((current) => (current === 'en' ? 'bn' : 'en'))}
+            isAuthenticated={isAuthenticated}
+            onSignOut={() => void signOut()}
           />
         )}
         {page === 'Home' && <Home go={go} />}
@@ -4517,7 +4711,16 @@ export default function App() {
         {page === 'Marketplace' && <Marketplace notify={notify} />}
         {page === 'Weather' && <Weather notify={notify} />}
         {page === 'Profile' && <Profile notify={notify} role={accountRole} />}
-        {page === 'Login' && <Login go={go} notify={notify} onAuthenticate={setAccountRole} />}
+        {page === 'Login' && (
+          <Login
+            go={go}
+            notify={(message) => {
+              setIsAuthenticated(true)
+              notify(message)
+            }}
+            onAuthenticate={setAccountRole}
+          />
+        )}
         {toast && (
           <div className="toast">
             <span>
