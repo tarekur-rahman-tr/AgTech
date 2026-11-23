@@ -3884,14 +3884,61 @@ function PrivacySecurity({
     },
   ])
 
-  const updatePassword = () => {
+  const updatePassword = async () => {
     if (!passwords.current || passwords.next.length < 8 || passwords.next !== passwords.confirm) {
       notify('Check your current password and make sure the new passwords match.')
       return
     }
-    setPasswords({ current: '', next: '', confirm: '' })
-    setView('overview')
-    notify('Your password was changed securely.')
+
+    try {
+      // Re-authenticate first so a stolen browser session alone is not enough
+      // to change the account password.
+      const verification = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: (await fetch('/api/users/me', { credentials: 'include' }).then((response) =>
+            response.ok ? response.json() : null
+          ))?.user?.email,
+          password: passwords.current,
+        }),
+      })
+
+      if (!verification.ok) {
+        notify('Your current password is incorrect. Please try again.')
+        return
+      }
+
+      const meResponse = await fetch('/api/users/me', { credentials: 'include' })
+      const meData = meResponse.ok ? await meResponse.json() : null
+      const userID = meData?.user?.id
+      if (!userID) {
+        notify('Your session could not be verified. Please sign in again.')
+        return
+      }
+
+      const updateResponse = await fetch(`/api/users/${userID}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ password: passwords.next }),
+      })
+      if (!updateResponse.ok) {
+        const updateData = await updateResponse.json().catch(() => ({}))
+        throw new Error(
+          updateData.errors?.[0]?.message ||
+            updateData.message ||
+            'The password could not be updated.',
+        )
+      }
+
+      setPasswords({ current: '', next: '', confirm: '' })
+      setView('overview')
+      notify('Your password was changed successfully.')
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'The password could not be updated.')
+    }
   }
 
   if (view === 'password') {
