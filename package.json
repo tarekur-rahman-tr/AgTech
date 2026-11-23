@@ -8,7 +8,12 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0 --port 3000",
     "typecheck": "tsc --noEmit",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "payload": "payload",
+    "db:migrate": "payload migrate",
+    "db:migrate:create": "payload migrate:create",
+    "generate:types": "payload generate:types",
+    "admin:create": "payload run src/scripts/bootstrap-admin.ts"
   },
   "dependencies": {
     "@payloadcms/figma": "1.0.0-beta.4",
