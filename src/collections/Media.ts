@@ -1,9 +1,8 @@
-import type { CollectionConfig } from 'payload'
+import type { Access, CollectionConfig } from 'payload'
 
 import { createFolderField, createTagField } from 'payload'
 
-const isPayloadAdmin = ({ req }: { req: { user?: { collection?: string } | null } }) =>
-  req.user?.collection === 'admins'
+const isPayloadAdmin: Access = ({ req }) => req.user?.collection === 'admins'
 
 export const Media: CollectionConfig = {
   slug: 'media',
