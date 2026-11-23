@@ -26,7 +26,7 @@ A Next.js + React application for the AgTech Smart Farming System. The main user
    pnpm dev
    ```
 
-6. Open <http://localhost:3000> in your browser.
+7. Open <http://localhost:3000> in your browser.
 
 Stop the server with `Ctrl + C` in the terminal.
 
@@ -40,7 +40,7 @@ pnpm generate:types  # Regenerate Payload TypeScript types
 pnpm admin:create    # Create the first Payload administrator
 ```
 
-Run `npm run build` before `npm run start`.
+Run `pnpm build` before `pnpm start`.
 
 ## Backend setup
 
