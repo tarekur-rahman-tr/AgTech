@@ -36,8 +36,8 @@ const payloadConfig = {
     dashboard: {
       widgets: [],
       defaultLayout: [
-        { widgetSlug: 'activity', width: 'full' as const },
-        { widgetSlug: 'collections', width: 'full' as const },
+        { widgetSlug: 'activity' as const, width: 'full' as const },
+        { widgetSlug: 'collections' as const, width: 'full' as const },
       ],
     },
     importMap: {
