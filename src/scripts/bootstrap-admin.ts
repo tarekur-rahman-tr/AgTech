@@ -32,10 +32,9 @@ if (existingAdmin.docs.length > 0) {
 } else {
   await payload.create({
     collection: 'admins',
-    data: {
-      email,
-      password,
-    },
+    // Payload hashes the password for auth collections at creation time.
+    // The generated Admin type omits this auth-only input field in Payload v4 beta.
+    data: { email, password } as never,
     overrideAccess: true,
   })
 
