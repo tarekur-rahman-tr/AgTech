@@ -5,7 +5,7 @@ A Next.js + React application for the AgTech Smart Farming System. The main user
 ## Requirements
 
 - Node.js 24.22.3 or newer (the project package configuration requires this)
-- npm 10 or newer
+- pnpm 9 or newer
 - VS Code (recommended)
 
 ## Run locally in VS Code
@@ -16,13 +16,14 @@ A Next.js + React application for the AgTech Smart Farming System. The main user
 4. Install dependencies:
 
    ```bash
-   npm install
+   pnpm install
    ```
 
-5. Start the development server:
+5. Configure `.env.local` by following [Backend setup](docs/BACKEND_SETUP.md).
+6. Start the development server:
 
    ```bash
-   npm run dev
+   pnpm dev
    ```
 
 6. Open <http://localhost:3000> in your browser.
@@ -32,12 +33,20 @@ Stop the server with `Ctrl + C` in the terminal.
 ## Other commands
 
 ```bash
-npm run typecheck   # Check TypeScript types
-npm run build       # Create a production build
-npm run start       # Run the production build locally
+pnpm typecheck       # Check TypeScript types
+pnpm build           # Create a production build
+pnpm start           # Run the production build locally
+pnpm generate:types  # Regenerate Payload TypeScript types
+pnpm admin:create    # Create the first Payload administrator
 ```
 
 Run `npm run build` before `npm run start`.
+
+## Backend setup
+
+The app now uses Payload CMS with Neon PostgreSQL for user authentication and admin management. Follow [docs/BACKEND_SETUP.md](docs/BACKEND_SETUP.md) for environment variables, first-admin setup, role approval, and production migrations.
+
+The public registration form creates Farmer accounts by default. Agronomist and Business role requests must be approved by an administrator in Payload Admin.
 
 ## AI plant disease diagnosis (optional)
 
@@ -67,4 +76,4 @@ Without these settings, the diagnosis endpoint returns a helpful “not configur
 - The original ZIP contained Git LFS pointer text instead of the three referenced image binaries. Local SVG fallback artwork has been added so those image paths resolve when running the project. Replace these SVGs with the original exported image assets whenever you have them.
 - The main website screens use client-side page state; they are not separate URL routes. Use the website navigation to move between them.
 - AI diagnosis requires the optional Gemini credentials above. Other demo interactions may display sample/demo content until a real backend is connected.
-- The Payload admin/CMS routes are included in the source. They are separate from the main AgTech frontend and may need additional database and deployment configuration before the CMS can be used in production.
+- Payload CMS uses the PostgreSQL connection configured by `DATABASE_URL`. Follow the backend setup guide before using `/admin` or registration.
