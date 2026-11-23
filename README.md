@@ -75,5 +75,5 @@ Without these settings, the diagnosis endpoint returns a helpful “not configur
 
 - The original ZIP contained Git LFS pointer text instead of the three referenced image binaries. Local SVG fallback artwork has been added so those image paths resolve when running the project. Replace these SVGs with the original exported image assets whenever you have them.
 - The main website screens use client-side page state; they are not separate URL routes. Use the website navigation to move between them.
-- AI diagnosis requires the optional Gemini credentials above. Other demo interactions may display sample/demo content until a real backend is connected.
+- AI diagnosis requires the optional Gemini credentials above. Authentication and CMS administration use Payload/PostgreSQL; Marketplace, Knowledge, Weather, Experts, and dashboard business data still contain demo/sample content and need their own backend collections and APIs.
 - Payload CMS uses the PostgreSQL connection configured by `DATABASE_URL`. Follow the backend setup guide before using `/admin` or registration.
