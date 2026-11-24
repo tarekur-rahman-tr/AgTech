@@ -1388,14 +1388,24 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
       return
     }
     try {
-      const response = await fetch('/api/consultation-requests', {
+      const category =
+        question.crop === 'Disease'
+          ? 'crop-health'
+          : question.crop === 'Market prices'
+            ? 'market'
+            : question.crop === 'Irrigation'
+              ? 'cultivation'
+              : 'cultivation'
+      const response = await fetch('/api/knowledge-articles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          subject: question.title.trim(),
-          question: question.details.trim(),
-          crop: question.crop,
+          title: question.title.trim(),
+          slug: `${question.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 100)}-${Date.now()}`,
+          excerpt: question.details.trim().slice(0, 500),
+          content: question.details.trim(),
+          category,
         }),
       })
       const data = await response.json().catch(() => ({}))
@@ -1403,12 +1413,36 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
         throw new Error(
           data.errors?.[0]?.message ||
             data.message ||
-            'Sign in with a farmer account to send a question to an agronomist.',
+            'Sign in to AgTech to share a community post.',
         )
       }
+      setPosts((current) => [
+        {
+          id: Date.now(),
+          author: 'You',
+          role: 'Community member',
+          title: question.title.trim(),
+          body: question.details.trim(),
+          category:
+            category === 'crop-health'
+              ? 'Crop diseases'
+              : category === 'market'
+                ? 'Market prices'
+                : question.crop === 'Rice'
+                  ? 'Rice cultivation'
+                  : 'Cultivation guide',
+          helpful: 0,
+          replies: 0,
+          time: 'Just now',
+          expert: false,
+        },
+        ...current,
+      ])
       setQuestion({ title: '', crop: 'Rice', details: '' })
       setComposerOpen(false)
-      notify('Your question was sent to the agronomist team.')
+      setTab('Latest')
+      setTopic('All topics')
+      notify('Your post is published and visible in the Knowledge Hub.')
     } catch (error) {
       notify(error instanceof Error ? error.message : 'Your question could not be submitted.')
     }
@@ -1422,7 +1456,7 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
         text="Practical answers from farmers, field experts and agronomists across Bangladesh."
         action={
           <Button onClick={() => setComposerOpen(true)}>
-            <Icon name="plus" /> Ask an agronomist
+            <Icon name="plus" /> Create a post
           </Button>
         }
       />
@@ -1665,21 +1699,21 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
           className="knowledge-modal"
           role="dialog"
           aria-modal="true"
-          aria-label="Ask an agronomist"
+          aria-label="Create a community post"
         >
           <div className="question-composer">
             <div className="profile-modal-head">
               <div>
-                <span>ASK AN AGRONOMIST</span>
-                <h2>What do you need help with?</h2>
+                <span>SHARE WITH THE COMMUNITY</span>
+                <h2>Share something with the farming community</h2>
               </div>
               <button onClick={() => setComposerOpen(false)}>
                 <Icon name="close" />
               </button>
             </div>
-            <p>Share enough detail so an AgTech agronomist can give useful, practical guidance.</p>
+            <p>Your post will be published immediately and visible to other AgTech members.</p>
             <label>
-              <span>Question title</span>
+              <span>Post title</span>
               <input
                 value={question.title}
                 onChange={(e) => setQuestion({ ...question, title: e.target.value })}
@@ -1727,7 +1761,7 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
             <div className="modal-actions">
               <button onClick={() => setComposerOpen(false)}>Cancel</button>
               <Button onClick={publishQuestion}>
-                Send question <Icon name="arrow" />
+                Publish post <Icon name="arrow" />
               </Button>
             </div>
           </div>
@@ -2478,8 +2512,7 @@ function Experts({ notify }: { notify: (s: string) => void }) {
                 <h3>Your request has been sent</h3>
                 <p>
                   Your request for {booking.method.toLowerCase()} on {booking.date} at{' '}
-                  {booking.time} has been sent to the AgTech agronomist team. They will review it
-                  and respond through your account.
+                  {booking.time} has been sent to the AgTech agronomist team. An agronomist can pick it up and respond through your account.
                 </p>
                 <div>
                   <span>Estimated fee</span>
@@ -2872,7 +2905,7 @@ function Marketplace({ notify }: { notify: (s: string) => void }) {
         location: 'Chattogram',
         description: '',
       })
-      notify('Your listing was submitted. It will appear after marketplace review.')
+      notify('Your listing is live in the marketplace.')
     } catch (error) {
       notify(error instanceof Error ? error.message : 'Your listing could not be submitted.')
     }
