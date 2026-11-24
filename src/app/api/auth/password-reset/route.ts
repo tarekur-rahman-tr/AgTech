@@ -164,7 +164,6 @@ export async function POST(request: Request) {
                   resetOtpHash: null,
                   resetOtpExpiresAt: null,
                   resetOtpPayloadToken: null,
-          resetOtpAttempts: 0,
                   resetOtpAttempts: nextAttempts,
                 }
               : { resetOtpAttempts: nextAttempts },
@@ -192,6 +191,7 @@ export async function POST(request: Request) {
           resetOtpExpiresAt: null,
           resetOtpLastSentAt: null,
           resetOtpPayloadToken: null,
+          resetOtpAttempts: 0,
         },
         overrideAccess: true,
       })
