@@ -1342,14 +1342,21 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
             return {
               id: docs.length - index,
               author,
-              role: 'AgTech agronomist',
+              role:
+                typeof doc.author === 'object' && doc.author
+                  ? doc.author.role === 'agronomist'
+                    ? 'AgTech agronomist'
+                    : doc.author.role === 'business'
+                      ? 'AgTech business'
+                      : 'Farmer'
+                  : 'AgTech member',
               title: String(doc.title || 'Untitled article'),
               body: String(doc.excerpt || doc.content || ''),
               category: categories[String(doc.category)] || 'Cultivation guide',
               helpful: 0,
               replies: 0,
               time: doc.updatedAt ? new Date(doc.updatedAt).toLocaleDateString() : 'Recently',
-              expert: true,
+              expert: typeof doc.author === 'object' && doc.author?.role === 'agronomist',
             }
           }),
         )
