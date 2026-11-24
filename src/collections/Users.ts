@@ -159,5 +159,11 @@ export const Users: CollectionConfig = {
       admin: { hidden: true },
       access: { create: () => false, read: () => false, update: () => false },
     },
+    {
+      name: 'resetOtpAttempts',
+      type: 'number',
+      admin: { hidden: true },
+      access: { create: () => false, read: () => false, update: () => false },
+    },
   ],
 }
