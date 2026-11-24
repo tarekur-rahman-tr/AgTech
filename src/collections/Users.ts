@@ -39,9 +39,7 @@ export const Users: CollectionConfig = {
         if (operation === 'create') {
           const allowedRoles = ['farmer', 'agronomist', 'business'] as const
           const selectedRole = String(data.role ?? 'farmer').toLowerCase()
-          const role = allowedRoles.includes(selectedRole as (typeof allowedRoles)[number])
-            ? selectedRole
-            : 'farmer'
+          const role = allowedRoles.find((allowedRole) => allowedRole === selectedRole) ?? 'farmer'
 
           return {
             ...data,
@@ -73,6 +71,10 @@ export const Users: CollectionConfig = {
       type: 'select',
       required: true,
       defaultValue: 'farmer',
+      admin: {
+        hidden: true,
+        description: 'Legacy field retained for existing records. New registrations use role directly.',
+      },
       options: [
         { label: 'Farmer', value: 'farmer' },
         { label: 'Agronomist', value: 'agronomist' },
@@ -87,6 +89,9 @@ export const Users: CollectionConfig = {
       access: {
         create: ({ req }) => !req.user || req.user.collection === 'admins',
         update: ({ req }) => req.user?.collection === 'admins',
+      },
+      admin: {
+        description: 'Selected during registration. Only administrators can change this account role.',
       },
       options: [
         { label: 'Farmer', value: 'farmer' },
