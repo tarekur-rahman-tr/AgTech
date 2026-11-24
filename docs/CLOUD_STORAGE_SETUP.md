@@ -1,55 +1,41 @@
-# AgTech file storage setup (Supabase Storage)
+# AgTech Cloudinary setup
 
-AgTech keeps structured application records in the existing Neon PostgreSQL database. Uploaded binary files (product photos, profile images, article images, and PDFs) will use Supabase Storage on its Free plan, subject to the published quota.
+AgTech keeps structured application records in Neon PostgreSQL. Cloudinary is the selected media delivery service for product photos, profile images, and article images.
 
-## Chosen architecture
+## Keep credentials private
 
-- **Neon PostgreSQL:** remains the source of truth for users, roles, listings, articles, inquiries, consultations, and Payload media metadata.
-- **Supabase Storage:** stores uploaded file bytes only. We are not moving the AgTech application database or authentication to Supabase.
-- **Payload Media collection:** remains the application's upload/metadata layer and records the uploader relationship.
-
-Supabase Storage supports the S3 protocol. Its Free plan currently includes 1 GB file storage and a 50 MB maximum file upload size. Free projects may be paused after one week of inactivity. Check the current pricing and usage limits before using it with real users. Staying within the free quota is necessary to keep storage costs at $0.
-
-## Supabase setup required
-
-1. Create/sign in to a Supabase account: https://supabase.com/dashboard
-2. Create a project, for example `agtech-file-storage`.
-3. Choose a region close to the existing Neon database (Singapore is a sensible first choice if available).
-4. Open **Storage** and create a bucket named `agtech-media`.
-5. Open **Storage → Configuration → S3** (or the S3 settings area), enable the S3 protocol if required, and generate an S3 access key and secret.
-6. Save the project region, S3 endpoint, Access Key ID, and Secret Access Key privately. S3 secret keys are shown only once.
-
-Do not send credentials in chat, commit them to GitHub, or add them to a `NEXT_PUBLIC_` variable. Use a server-side secret in `.env.local` and deployment settings only.
-
-## Environment variables (names to be wired into the app)
-
-The exact endpoint, region, bucket and credentials must come from the Supabase project dashboard:
+Add these values to your local `.env.local` file and to your hosting provider's server-side environment settings:
 
 ```env
-SUPABASE_STORAGE_BUCKET=agtech-media
-SUPABASE_S3_ENDPOINT=
-SUPABASE_S3_REGION=
-SUPABASE_S3_ACCESS_KEY_ID=
-SUPABASE_S3_SECRET_ACCESS_KEY=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
 ```
 
-## Application integration status
+Get the values from the Cloudinary Console: https://console.cloudinary.com/. Never paste the API Secret into chat, commit it to GitHub, or use a `NEXT_PUBLIC_` variable for it. The Cloud Name and API Key are identifiers; the API Secret must remain server-only.
 
-This document records the selected provider and setup steps; it does **not** mean the application is connected yet. The repository currently has a Payload Media collection and the Payload cloud-storage foundation package, but no Supabase adapter is configured.
+## What is now in the repository
 
-Important compatibility note: this repository currently uses Payload `4.0.0-beta.11`. Before adding an adapter, verify that the chosen adapter supports this exact Payload version. The official Payload S3 adapter's documented API/version must not be assumed compatible with this beta. If no compatible official adapter exists, implement and test a small server-side Supabase Storage integration/custom Payload adapter rather than installing an incompatible package.
+- Neon PostgreSQL remains unchanged and stores application records and Payload media metadata.
+- Payload's existing `media` collection and its access rules remain in place.
+- Payload exposes an authenticated server endpoint at `/api/cloudinary/signature`. It returns a short-lived upload signature only to signed-in AgTech users or admins. The API Secret is used only on the server and is never returned.
+- The signed upload is scoped to the authenticated user's `agtech/users/{userId}` folder.
 
-Keep local development uploads available until the remote adapter is implemented and credentials are configured. Do not change the existing Neon database connection.
+## Important integration status
+
+The signature endpoint is the secure backend foundation for browser-to-Cloudinary uploads. The current Payload Media collection still uses its existing upload handling; its upload UI has not yet been switched to Cloudinary. Do not treat Cloudinary storage as fully connected until the frontend upload flow is wired to request a signature, upload the file to Cloudinary, and save the resulting asset metadata in Payload.
+
+The community package `payload-storage-cloudinary` currently documents compatibility with Payload v3, while this repository uses Payload `4.0.0-beta.11`. Do not install it blindly or downgrade Payload just to use it. A compatible v4 adapter or a tested custom integration is required before replacing Payload's existing Media upload flow.
+
+## Current media scope
+
+Use Cloudinary first for image assets (farmer product photos, profile images, and article images). PDF/document storage needs a separate decision and quota check; do not assume Cloudinary's image workflow is a general-purpose document store.
 
 ## Verification checklist
 
-- [ ] Create the Supabase project and `agtech-media` bucket on the Free plan.
-- [ ] Confirm the S3 endpoint, region and server-only credentials in the dashboard.
-- [ ] Verify Payload v4 beta compatibility before selecting an adapter.
-- [ ] Configure remote storage for the `media` collection without exposing secret credentials.
-- [ ] Keep Payload's media access controls enabled; do not make private uploads public by default.
-- [ ] Upload a test image as a Farmer and confirm the Media record stores the uploader.
-- [ ] Confirm the file remains available after restarting the app.
-- [ ] Confirm another signed-in user cannot edit or delete the first user's media.
-- [ ] Confirm an Admin can manage media.
-- [ ] Test upload, read, delete and access-control behavior before production use.
+- [ ] Add Cloudinary values to local `.env.local` (never commit that file).
+- [ ] Restart the local development server after changing environment variables.
+- [ ] Sign in to AgTech and verify the signature endpoint returns a signature.
+- [ ] Verify unauthenticated requests are rejected.
+- [ ] Wire the frontend media upload flow to Cloudinary and persist the returned URL/public ID in Payload.
+- [ ] Test image upload, display, deletion, and per-user ownership before production.
