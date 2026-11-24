@@ -4805,6 +4805,27 @@ function Login({
             minLength={8}
           />
         </label>
+        {mode === 'login' && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
+            <button
+              type="button"
+              onClick={() =>
+                setError('Password recovery is being configured. Please contact the AgTech administrator for now.')
+              }
+              style={{
+                background: 'none',
+                border: 0,
+                padding: '4px 0',
+                color: 'var(--accent, #287a45)',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
         {error && (
           <p role="alert" style={{ color: '#b42318', fontSize: 13, lineHeight: 1.5 }}>
             {error}
