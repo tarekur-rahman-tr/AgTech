@@ -1,30 +1,30 @@
-import type { Access, CollectionConfig } from 'payload'
+import type { Access, CollectionConfig, Where } from 'payload'
 
-const isAdmin: Access = ({ req }) => req.user?.collection === 'admins'
+const isAdmin = ({ req }: { req: { user?: { collection?: string } | null } }) =>
+  req.user?.collection === 'admins'
 
 const canReadRequest: Access = ({ req }) => {
   if (req.user?.collection === 'admins') return true
   if (req.user?.collection !== 'users') return false
   if (req.user.role === 'agronomist') {
-    return {
-      or: [
-        { assignedAgronomist: { equals: req.user.id } },
-        { status: { equals: 'open' } },
-      ],
-    }
+    const conditions: Where[] = [
+      { assignedAgronomist: { equals: req.user.id } },
+      { status: { equals: 'open' } },
+    ]
+    return { or: conditions }
   }
-  return { farmer: { equals: req.user.id } }
+  const where: Where = { farmer: { equals: req.user.id } }
+  return where
 }
 
 const canUpdateRequest: Access = ({ req }) => {
   if (req.user?.collection === 'admins') return true
   if (req.user?.collection !== 'users' || req.user.role !== 'agronomist') return false
-  return {
-    or: [
-      { assignedAgronomist: { equals: req.user.id } },
-      { status: { equals: 'open' } },
-    ],
-  }
+  const conditions: Where[] = [
+    { assignedAgronomist: { equals: req.user.id } },
+    { status: { equals: 'open' } },
+  ]
+  return { or: conditions }
 }
 
 export const ConsultationRequests: CollectionConfig = {
@@ -81,14 +81,14 @@ export const ConsultationRequests: CollectionConfig = {
       name: 'answer',
       type: 'textarea',
       maxLength: 5000,
-      access: { update: canUpdateRequest },
+      access: { update: ({ req }) => req.user?.collection === 'admins' || (req.user?.collection === 'users' && req.user.role === 'agronomist') },
     },
     {
       name: 'status',
       type: 'select',
       required: true,
       defaultValue: 'open',
-      access: { create: () => true, update: canUpdateRequest },
+      access: { create: () => true, update: ({ req }) => req.user?.collection === 'admins' || (req.user?.collection === 'users' && req.user.role === 'agronomist') },
       options: [
         { label: 'Open', value: 'open' },
         { label: 'In progress', value: 'in-progress' },
