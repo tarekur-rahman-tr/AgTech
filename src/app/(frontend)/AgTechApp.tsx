@@ -1300,57 +1300,68 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
   const [expandedPost, setExpandedPost] = useState<number | null>(null)
   const [reply, setReply] = useState('')
   const [question, setQuestion] = useState({ title: '', crop: 'Rice', details: '' })
-  const [posts, setPosts] = useState([
+  const [posts, setPosts] = useState<
     {
-      id: 1,
-      author: 'Abdul Karim',
-      role: 'Rice farmer · Bogura',
-      title: 'How can I protect Aman rice from brown planthopper after heavy rain?',
-      body: 'The lower leaves are turning yellow and I noticed small insects near the water line.',
-      category: 'Rice cultivation',
-      helpful: 24,
-      replies: 8,
-      time: '1h ago',
-      expert: false,
-    },
-    {
-      id: 2,
-      author: 'Nusrat Jahan',
-      role: 'Vegetable grower · Jashore',
-      title: 'A simple organic method that reduced aphids on my brinjal crop',
-      body: 'Sharing the neem solution and timing that worked for my field this season.',
-      category: 'Organic farming',
-      helpful: 41,
-      replies: 13,
-      time: '2h ago',
-      expert: false,
-      image: '/agtech-market.svg',
-    },
-    {
-      id: 3,
-      author: 'Dr. Farhana Akter',
-      role: 'Verified agronomist',
-      title: 'Three early signs of tomato leaf curl every grower should know',
-      body: 'Early action can protect the rest of your field. Here is what to look for.',
-      category: 'Crop diseases',
-      helpful: 67,
-      replies: 21,
-      time: '3h ago',
-      expert: true,
-    },
-    {
-      id: 4,
-      author: 'Shahidul Islam',
-      role: 'Mixed farmer · Rangpur',
-      title: 'Current Aman rice price in Rangpur and nearby markets',
-      body: 'Sharing today’s farm-gate prices and looking for verified buyers for 2,000 kg.',
-      category: 'Market prices',
-      helpful: 18,
-      replies: 6,
-      time: '5h ago',
-      expert: false,
-    },
-  ])
+      id: number
+      author: string
+      role: string
+      title: string
+      body: string
+      category: string
+      helpful: number
+      replies: number
+      time: string
+      expert: boolean
+      image?: string
+    }[]
+  >([])
+  useEffect(() => {
+    let active = true
+    fetch('/api/knowledge-articles?where[status][equals]=published&limit=50&depth=1&sort=-updatedAt')
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Knowledge articles could not be loaded.')
+        return response.json()
+      })
+      .then((data) => {
+        if (!active) return
+        const docs = Array.isArray(data.docs) ? data.docs : []
+        setPosts(
+          docs.map((doc: any, index: number) => {
+            const author =
+              typeof doc.author === 'object' && doc.author
+                ? doc.author.fullName || doc.author.email || 'AgTech agronomist'
+                : 'AgTech agronomist'
+            const categories: Record<string, string> = {
+              'crop-health': 'Crop diseases',
+              soil: 'Soil and nutrition',
+              pests: 'Crop diseases',
+              cultivation: 'Rice cultivation',
+              technology: 'Technology',
+              market: 'Market prices',
+            }
+            return {
+              id: docs.length - index,
+              author,
+              role: 'AgTech agronomist',
+              title: String(doc.title || 'Untitled article'),
+              body: String(doc.excerpt || doc.content || ''),
+              category: categories[String(doc.category)] || 'Cultivation guide',
+              helpful: 0,
+              replies: 0,
+              time: doc.updatedAt ? new Date(doc.updatedAt).toLocaleDateString() : 'Recently',
+              expert: true,
+            }
+          }),
+        )
+      })
+      .catch(() => {
+        if (active) notify('Knowledge articles are temporarily unavailable.')
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
   const topics = [
     ['Rice cultivation', 128],
     ['Crop diseases', 111],
@@ -1371,36 +1382,36 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
     .filter((post) => tab !== 'Following' || post.expert)
     .sort((a, b) => (tab === 'Latest' ? b.id - a.id : b.helpful - a.helpful))
 
-  const publishQuestion = () => {
+  const publishQuestion = async () => {
     if (!question.title.trim() || !question.details.trim()) {
       notify('Add a question title and some details first.')
       return
     }
-    setPosts((current) => [
-      {
-        id: Date.now(),
-        author: 'Md. Rahim Uddin',
-        role: 'Farmer · Chattogram',
-        title: question.title,
-        body: question.details,
-        category:
-          question.crop === 'Rice'
-            ? 'Rice cultivation'
-            : question.crop === 'Disease'
-              ? 'Crop diseases'
-              : 'Organic farming',
-        helpful: 0,
-        replies: 0,
-        time: 'Just now',
-        expert: false,
-      },
-      ...current,
-    ])
-    setQuestion({ title: '', crop: 'Rice', details: '' })
-    setTab('Latest')
-    setTopic('All topics')
-    setComposerOpen(false)
-    notify('Your question is now live in the community.')
+    try {
+      const response = await fetch('/api/consultation-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          subject: question.title.trim(),
+          question: question.details.trim(),
+          crop: question.crop,
+        }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(
+          data.errors?.[0]?.message ||
+            data.message ||
+            'Sign in with a farmer account to send a question to an agronomist.',
+        )
+      }
+      setQuestion({ title: '', crop: 'Rice', details: '' })
+      setComposerOpen(false)
+      notify('Your question was sent to the agronomist team.')
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Your question could not be submitted.')
+    }
   }
 
   return (
@@ -1411,7 +1422,7 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
         text="Practical answers from farmers, field experts and agronomists across Bangladesh."
         action={
           <Button onClick={() => setComposerOpen(true)}>
-            <Icon name="plus" /> Ask community
+            <Icon name="plus" /> Ask an agronomist
           </Button>
         }
       />
@@ -1654,19 +1665,19 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
           className="knowledge-modal"
           role="dialog"
           aria-modal="true"
-          aria-label="Ask the community"
+          aria-label="Ask an agronomist"
         >
           <div className="question-composer">
             <div className="profile-modal-head">
               <div>
-                <span>ASK THE COMMUNITY</span>
+                <span>ASK AN AGRONOMIST</span>
                 <h2>What do you need help with?</h2>
               </div>
               <button onClick={() => setComposerOpen(false)}>
                 <Icon name="close" />
               </button>
             </div>
-            <p>Share enough detail for farmers and experts to give useful, practical answers.</p>
+            <p>Share enough detail so an AgTech agronomist can give useful, practical guidance.</p>
             <label>
               <span>Question title</span>
               <input
@@ -1716,7 +1727,7 @@ function Knowledge({ notify, go }: { notify: (s: string) => void; go: (p: Page) 
             <div className="modal-actions">
               <button onClick={() => setComposerOpen(false)}>Cancel</button>
               <Button onClick={publishQuestion}>
-                Publish question <Icon name="arrow" />
+                Send question <Icon name="arrow" />
               </Button>
             </div>
           </div>
