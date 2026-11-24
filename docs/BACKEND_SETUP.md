@@ -67,10 +67,10 @@ Sign in with the administrator email and password you configured.
 
 ## 4. How account registration, roles, and Admin work
 
-- During public registration, a person chooses **Farmer**, **Agronomist**, or **Business**. The selected role is saved as the account's actual role. New accounts start as **Pending approval** and cannot sign in until an administrator approves them.
+- During public registration, a person chooses **Farmer**, **Agronomist**, or **Business**. The selected role is saved as the account's actual role. Registration is open: new accounts are automatically approved and can sign in immediately with their email and password. No administrator approval is required.
 - The server accepts only those three role values. Missing or invalid values safely default to Farmer.
 - A signed-in user cannot change their own role or account status, or create another user through the public API. Only an administrator can change an existing user's role or status.
-- In Payload Admin, open **Users** and review the **Status** field. Set a new account to **Approved** to allow login, or **Suspended** to block login. Pending and suspended accounts receive a clear login error.
+- In Payload Admin, open **Users** to manage accounts. Public registrations are automatically **Approved**; an administrator can set an account to **Suspended** if necessary.
 - Admin is a separate, private authentication collection. There is no Admin option on the public registration form, and the first Admin is created only from the trusted server terminal with `pnpm admin:create`.
 - Admin is for platform operations: managing accounts, moderating content and media, and reviewing marketplace listings.
 - Marketplace listings are stored in the `marketplace-listings` collection. A signed-in user can create a listing; it is assigned to that user and starts as **Pending review**. Only an administrator can publish, reject, or mark a listing as sold. Public visitors can read active listings; a seller can also read their own pending or rejected listings.
