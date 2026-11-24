@@ -80,7 +80,7 @@ export const MarketplaceInquiries: CollectionConfig = {
       relationTo: 'users',
       required: true,
       index: true,
-      access: { update: isAdmin },
+      access: { update: ({ req }) => req.user?.collection === 'admins' },
     },
     {
       name: 'seller',
@@ -88,7 +88,7 @@ export const MarketplaceInquiries: CollectionConfig = {
       relationTo: 'users',
       required: true,
       index: true,
-      access: { update: isAdmin },
+      access: { update: ({ req }) => req.user?.collection === 'admins' },
     },
     {
       name: 'message',
