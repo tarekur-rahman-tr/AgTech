@@ -5,7 +5,7 @@ import { createFolderField, createTagField } from 'payload'
 const isAdmin: Access = ({ req }) => req.user?.collection === 'admins'
 
 const canManageOwnMedia: Access = ({ req }) => {
-  if (isAdmin({ req })) return true
+  if (req.user?.collection === 'admins') return true
   if (req.user?.collection !== 'users') return false
   return { uploadedBy: { equals: req.user.id } }
 }
