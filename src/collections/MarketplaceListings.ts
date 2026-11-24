@@ -119,6 +119,7 @@ export const MarketplaceListings: CollectionConfig = {
       relationTo: 'users',
       required: true,
       index: true,
+      access: { update: isAdmin },
     },
     {
       name: 'status',
