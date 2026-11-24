@@ -2576,6 +2576,7 @@ function Experts({ notify }: { notify: (s: string) => void }) {
 
 type MarketplaceProduct = {
   id: number
+  recordID?: string
   name: string
   category: string
   price: string
@@ -2731,6 +2732,7 @@ function Marketplace({ notify }: { notify: (s: string) => void }) {
           const priceNumber = Number(doc.price || 0)
           return {
             id: index + 1,
+            recordID: String(doc.id),
             name: String(doc.title || 'Untitled listing'),
             category,
             price: `৳${priceNumber.toLocaleString('en-BD')} / ${unit}`,
@@ -2782,6 +2784,39 @@ function Marketplace({ notify }: { notify: (s: string) => void }) {
     setSellerMessage(
       `Hello, I’m interested in your ${product.name.toLowerCase()}. Is it still available?`,
     )
+  }
+
+  const sendInquiry = async () => {
+    if (!sellerMessage.trim()) {
+      notify('Write a message before sending.')
+      return
+    }
+    if (!contactProduct?.recordID) {
+      notify('This listing is not connected to the live marketplace yet.')
+      return
+    }
+    try {
+      const response = await fetch('/api/marketplace-inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          listing: contactProduct.recordID,
+          message: sellerMessage.trim(),
+        }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(
+          data.errors?.[0]?.message ||
+            data.message ||
+            'Sign in to AgTech to contact this seller.',
+        )
+      }
+      setMessageSent(true)
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Your inquiry could not be sent.')
+    }
   }
 
   const publishListing = async () => {
@@ -3109,13 +3144,7 @@ function Marketplace({ notify }: { notify: (s: string) => void }) {
                   <input type="checkbox" />
                   <span>Share my mobile number with this seller</span>
                 </label>
-                <Button
-                  onClick={() =>
-                    sellerMessage.trim()
-                      ? setMessageSent(true)
-                      : notify('Write a message before sending.')
-                  }
-                >
+                <Button onClick={() => void sendInquiry()}>
                   Send inquiry <Icon name="arrow" />
                 </Button>
               </>
