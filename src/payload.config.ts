@@ -10,6 +10,7 @@ import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Folders } from './collections/Folders'
 import { Tags } from './collections/Tags'
+import { MarketplaceListings } from './collections/MarketplaceListings'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -48,7 +49,7 @@ const payloadConfig = {
     fallbackLanguage: 'en' as const,
     supportedLanguages: { en: adminLanguage },
   },
-  collections: [Admins, Users, Media, Folders, Tags],
+  collections: [Admins, Users, Media, Folders, Tags, MarketplaceListings],
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
