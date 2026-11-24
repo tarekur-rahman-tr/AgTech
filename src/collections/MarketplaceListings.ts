@@ -126,7 +126,7 @@ export const MarketplaceListings: CollectionConfig = {
       required: true,
       defaultValue: 'pending',
       access: {
-        create: isAdmin,
+        create: () => true,
         update: isAdmin,
       },
       options: [
