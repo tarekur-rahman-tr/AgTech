@@ -3328,6 +3328,40 @@ function Weather({ notify }: { notify: (s: string) => void }) {
   const [location, setLocation] = useState<keyof typeof locations>('Chattogram')
   const [selectedDay, setSelectedDay] = useState(0)
   const [adviceOpen, setAdviceOpen] = useState(false)
+  const [publishedAlerts, setPublishedAlerts] = useState<
+    { id: string; title: string; message: string; district: string; severity: string; farmAdvice: string }[]
+  >([])
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/weather-alerts?where[status][equals]=active&limit=20&sort=-createdAt', {
+      credentials: 'include',
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Weather alerts could not be loaded.')
+        return response.json()
+      })
+      .then((data) => {
+        if (!active) return
+        const docs = Array.isArray(data.docs) ? data.docs : []
+        setPublishedAlerts(
+          docs.map((doc: any) => ({
+            id: String(doc.id),
+            title: String(doc.title || 'Weather advisory'),
+            message: String(doc.message || ''),
+            district: String(doc.district || 'Bangladesh'),
+            severity: String(doc.severity || 'info'),
+            farmAdvice: String(doc.farmAdvice || ''),
+          })),
+        )
+      })
+      .catch(() => {
+        if (active) notify('Published weather alerts are temporarily unavailable.')
+      })
+    return () => {
+      active = false
+    }
+  }, [])
   const place = locations[location]
   const selected = days[selectedDay]
   const rainChance = Math.min(95, Math.max(5, selected.rain + place.rainOffset))
@@ -3430,6 +3464,28 @@ function Weather({ notify }: { notify: (s: string) => void }) {
           </div>
         </div>
       </section>
+      {publishedAlerts.length > 0 && (
+        <section className="weather-published-alerts">
+          <div className="panel-head">
+            <div>
+              <span>AGTECH WEATHER NOTICES</span>
+              <h2>Published farm alerts</h2>
+            </div>
+            <span>{publishedAlerts.length} active</span>
+          </div>
+          {publishedAlerts.map((item) => (
+            <article className="farm-alert" key={item.id}>
+              <span>!</span>
+              <div>
+                <strong>{item.title}</strong>
+                <p>{item.district} · {item.severity.toUpperCase()}</p>
+                <p>{item.message}</p>
+                <small>{item.farmAdvice}</small>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
       <section className={`farm-alert-wrap ${adviceOpen ? 'open' : ''}`}>
         <div className="farm-alert">
           <span>!</span>
