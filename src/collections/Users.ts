@@ -1,9 +1,9 @@
 import type { CollectionConfig } from 'payload'
 
 /**
- * Public accounts can register, but they cannot grant themselves a privileged
- * role. New accounts are created as farmers; an administrator can approve
- * their requested role from the Payload admin panel.
+ * Public users may register as Farmer, Agronomist, or Business.
+ * Admin accounts live in a separate collection and can never be created here.
+ * A user's role can only be changed later by an administrator.
  */
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -13,10 +13,10 @@ export const Users: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'fullName',
-    defaultColumns: ['fullName', 'email', 'role', 'requestedRole', 'createdAt'],
+    defaultColumns: ['fullName', 'email', 'role', 'createdAt'],
   },
   access: {
-    create: () => true,
+    create: ({ req }) => !req.user || req.user.collection === 'admins',
     read: ({ req }) => {
       if (req.user?.collection === 'admins') return true
       if (req.user?.collection !== 'users') return false
@@ -34,15 +34,22 @@ export const Users: CollectionConfig = {
       ({ data, operation, req }) => {
         if (!data || req.user?.collection === 'admins') return data
 
-        // Force the farmer role only at public account creation.
-        // Do not overwrite an administrator-approved role on later profile updates.
+        // Accept only the three public account types at registration.
+        // Invalid or missing values safely fall back to Farmer.
         if (operation === 'create') {
+          const allowedRoles = ['farmer', 'agronomist', 'business'] as const
+          const selectedRole = String(data.role ?? 'farmer').toLowerCase()
+          const role = allowedRoles.includes(selectedRole as (typeof allowedRoles)[number])
+            ? selectedRole
+            : 'farmer'
+
           return {
             ...data,
-            role: 'farmer',
+            role,
           }
         }
 
+        // Role changes are blocked by field-level access on ordinary user updates.
         return data
       },
     ],
@@ -78,7 +85,7 @@ export const Users: CollectionConfig = {
       required: true,
       defaultValue: 'farmer',
       access: {
-        create: ({ req }) => req.user?.collection === 'admins',
+        create: ({ req }) => !req.user || req.user.collection === 'admins',
         update: ({ req }) => req.user?.collection === 'admins',
       },
       options: [
