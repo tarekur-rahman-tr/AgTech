@@ -113,6 +113,4 @@ The core email/password registration and login flow is connected. These optional
 - Email delivery for password-reset messages and verification.
 - SMS/OTP sign-in.
 - Two-factor authentication.
-- Email delivery for account verification and password-reset messages.
-
 AI diagnosis remains separate and uses `APP_GEMINI_API_KEY` and `APP_GEMINI_API_BASE_URL` when configured.
