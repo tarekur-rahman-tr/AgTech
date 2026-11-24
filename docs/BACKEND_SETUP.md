@@ -65,14 +65,17 @@ http://localhost:3000/admin
 
 Sign in with the administrator email and password you configured.
 
-## 4. How account registration and roles work
+## 4. How account registration, roles, and Admin work
 
-- Visitors register with their name, email, password, optional phone number, and requested account type.
-- The server creates public registrations with the actual role set to **Farmer**. A visitor cannot promote their own account by editing a request.
-- The requested Agronomist or Business role is saved separately as `requestedRole`.
-- An administrator can review the user in Payload Admin → Users and change the `role` field after approval.
-- The frontend uses the role returned by the authenticated server session, not the role selected in the browser.
+- During public registration, a person chooses **Farmer**, **Agronomist**, or **Business**. The selected role is saved as the account's actual role, and the user can sign in immediately without administrator approval.
+- The server accepts only those three role values. Missing or invalid values safely default to Farmer.
+- A signed-in user cannot change their own role or create another user through the public API. Only an administrator can change an existing user's role.
+- Admin is a separate, private authentication collection. There is no Admin option on the public registration form, and the first Admin is created only from the trusted server terminal with `pnpm admin:create`.
+- Admin is for platform operations: managing accounts, moderating content and media, and responding to reported or suspicious marketplace activity as those modules are implemented. Normal Farmers, Agronomists, and Businesses do not need Admin access.
+- The frontend uses the role returned by the authenticated server session, not a role kept only in browser state.
 - User passwords are handled by Payload authentication. The browser uses the Payload HTTP-only session cookie; the frontend does not store passwords or authentication tokens in localStorage.
+
+The legacy `requestedRole` field is retained temporarily for existing database records, but new registrations use `role` directly.
 
 The website's sign-in form currently uses email and password. The phone number is a contact field, not a login identifier.
 
@@ -110,6 +113,6 @@ The core email/password registration and login flow is connected. These optional
 - Email delivery for password-reset messages and verification.
 - SMS/OTP sign-in.
 - Two-factor authentication.
-- Approval notifications for Agronomist and Business applications.
+- Email delivery for account verification and password-reset messages.
 
 AI diagnosis remains separate and uses `APP_GEMINI_API_KEY` and `APP_GEMINI_API_BASE_URL` when configured.
