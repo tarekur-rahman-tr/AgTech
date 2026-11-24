@@ -42,7 +42,7 @@ export const MarketplaceListings: CollectionConfig = {
           return {
             ...data,
             seller: req.user.id,
-            status: 'pending',
+            status: 'active',
           }
         }
         return data
@@ -127,15 +127,13 @@ export const MarketplaceListings: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
-      defaultValue: 'pending',
+      defaultValue: 'active',
       access: {
         create: () => true,
         update: isAdmin,
       },
       options: [
-        { label: 'Pending review', value: 'pending' },
         { label: 'Active', value: 'active' },
-        { label: 'Rejected', value: 'rejected' },
         { label: 'Sold', value: 'sold' },
       ],
       admin: { position: 'sidebar' },
