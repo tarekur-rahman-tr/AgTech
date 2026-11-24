@@ -67,9 +67,10 @@ Sign in with the administrator email and password you configured.
 
 ## 4. How account registration, roles, and Admin work
 
-- During public registration, a person chooses **Farmer**, **Agronomist**, or **Business**. The selected role is saved as the account's actual role, and the user can sign in immediately without administrator approval.
+- During public registration, a person chooses **Farmer**, **Agronomist**, or **Business**. The selected role is saved as the account's actual role. New accounts start as **Pending approval** and cannot sign in until an administrator approves them.
 - The server accepts only those three role values. Missing or invalid values safely default to Farmer.
-- A signed-in user cannot change their own role or create another user through the public API. Only an administrator can change an existing user's role.
+- A signed-in user cannot change their own role or account status, or create another user through the public API. Only an administrator can change an existing user's role or status.
+- In Payload Admin, open **Users** and review the **Status** field. Set a new account to **Approved** to allow login, or **Suspended** to block login. Pending and suspended accounts receive a clear login error.
 - Admin is a separate, private authentication collection. There is no Admin option on the public registration form, and the first Admin is created only from the trusted server terminal with `pnpm admin:create`.
 - Admin is for platform operations: managing accounts, moderating content and media, and responding to reported or suspicious marketplace activity as those modules are implemented. Normal Farmers, Agronomists, and Businesses do not need Admin access.
 - The frontend uses the role returned by the authenticated server session, not a role kept only in browser state.
