@@ -32,11 +32,8 @@ export const Users: CollectionConfig = {
   hooks: {
     beforeLogin: [
       ({ user }) => {
-        // Older accounts without a status remain usable; new accounts must be approved.
+        // Public accounts can use AgTech immediately. Only suspended accounts are blocked.
         const status = (user as { status?: string }).status
-        if (status === 'pending') {
-          throw new APIError('Your AgTech account is waiting for administrator approval.', 403)
-        }
         if (status === 'suspended') {
           throw new APIError('This AgTech account has been suspended. Contact the administrator.', 403)
         }
@@ -57,8 +54,8 @@ export const Users: CollectionConfig = {
           return {
             ...data,
             role,
-            // Every public signup starts in the moderation queue.
-            status: 'pending',
+            // Public signup is open: no administrator approval is required.
+            status: 'approved',
           }
         }
 
@@ -124,11 +121,10 @@ export const Users: CollectionConfig = {
         update: ({ req }) => req.user?.collection === 'admins',
       },
       admin: {
-        description: 'New public accounts start Pending. Admins can approve or suspend accounts here.',
+        description: 'Public accounts are approved automatically. Admins may suspend accounts here.',
         position: 'sidebar',
       },
       options: [
-        { label: 'Pending approval', value: 'pending' },
         { label: 'Approved', value: 'approved' },
         { label: 'Suspended', value: 'suspended' },
       ],
