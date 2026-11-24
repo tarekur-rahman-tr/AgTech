@@ -2235,12 +2235,38 @@ function Experts({ notify }: { notify: (s: string) => void }) {
     setBooking({ method: 'Video call', date: '', time: '10:30 AM', issue: '' })
   }
 
-  const confirmBooking = () => {
+  const confirmBooking = async () => {
     if (!booking.date || !booking.issue.trim()) {
       notify('Choose a date and briefly describe what you need help with.')
       return
     }
-    setBookingComplete(true)
+    try {
+      const response = await fetch('/api/consultation-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          subject: `${bookingExpert?.specialty || 'Agronomist'} consultation request`,
+          question: [
+            booking.issue.trim(),
+            `Preferred agronomist: ${bookingExpert?.name || 'Any available agronomist'}.`,
+            `Preferred method: ${booking.method}.`,
+            `Preferred date and time: ${booking.date} at ${booking.time}.`,
+          ].join('\\n\\n'),
+        }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(
+          data.errors?.[0]?.message ||
+            data.message ||
+            'Sign in with a farmer account to request an agronomist consultation.',
+        )
+      }
+      setBookingComplete(true)
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Your consultation request could not be sent.')
+    }
   }
 
   return (
@@ -2440,8 +2466,9 @@ function Experts({ notify }: { notify: (s: string) => void }) {
                 </span>
                 <h3>Your request has been sent</h3>
                 <p>
-                  {bookingExpert.name} will confirm your {booking.method.toLowerCase()} for{' '}
-                  {booking.date} at {booking.time}.
+                  Your request for {booking.method.toLowerCase()} on {booking.date} at{' '}
+                  {booking.time} has been sent to the AgTech agronomist team. They will review it
+                  and respond through your account.
                 </p>
                 <div>
                   <span>Estimated fee</span>
