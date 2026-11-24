@@ -1,11 +1,9 @@
-import type { Access, CollectionConfig } from 'payload'
-
-const isPayloadAdmin: Access = ({ req }) => req.user?.collection === 'admins'
+import type { CollectionConfig } from 'payload'
 
 export const Admins: CollectionConfig = {
   slug: 'admins',
   access: {
-    admin: isPayloadAdmin,
+    admin: ({ req }) => req.user?.collection === 'admins',
     create: isPayloadAdmin,
     delete: isPayloadAdmin,
     read: isPayloadAdmin,
