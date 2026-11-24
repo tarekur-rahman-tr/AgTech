@@ -2663,7 +2663,61 @@ function Marketplace({ notify }: { notify: (s: string) => void }) {
     location: 'Chattogram',
     description: '',
   })
-  const [products, setProducts] = useState<MarketplaceProduct[]>(marketplaceProducts)
+  const [products, setProducts] = useState<MarketplaceProduct[]>([])
+  const [loadingListings, setLoadingListings] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/marketplace-listings?where[status][equals]=active&limit=100&depth=1&sort=-createdAt', {
+      credentials: 'include',
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Marketplace listings could not be loaded.')
+        return response.json()
+      })
+      .then((data) => {
+        if (!active) return
+        const docs = Array.isArray(data.docs) ? data.docs : []
+        const mapped: MarketplaceProduct[] = docs.map((doc: any, index: number) => {
+          const category =
+            doc.category === 'equipment'
+              ? 'Equipment'
+              : doc.category === 'inputs' || doc.category === 'seeds'
+                ? 'Inputs'
+                : 'Produce'
+          const seller =
+            typeof doc.seller === 'object' && doc.seller
+              ? doc.seller.fullName || doc.seller.email || 'AgTech seller'
+              : 'AgTech seller'
+          const unit = String(doc.unit || 'unit')
+          const priceNumber = Number(doc.price || 0)
+          return {
+            id: index + 1,
+            name: String(doc.title || 'Untitled listing'),
+            category,
+            price: `৳${priceNumber.toLocaleString('en-BD')} / ${unit}`,
+            priceNumber,
+            location: String(doc.location || 'Bangladesh'),
+            seller,
+            rating: 0,
+            quantity: `${doc.quantity ?? 0} ${unit} available`,
+            description: String(doc.description || ''),
+            delivery: 'Contact seller for delivery details',
+            posted: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : 'Recently',
+          }
+        })
+        setProducts(mapped)
+      })
+      .catch(() => {
+        if (active) notify('Marketplace listings could not be loaded. Please refresh the page.')
+      })
+      .finally(() => {
+        if (active) setLoadingListings(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
   const visibleProducts = products
     .filter((product) => filter === 'All' || product.category === filter)
     .filter((product) => {
@@ -2692,44 +2746,63 @@ function Marketplace({ notify }: { notify: (s: string) => void }) {
     )
   }
 
-  const publishListing = () => {
+  const publishListing = async () => {
     if (!newListing.name.trim() || !newListing.price || !newListing.quantity) {
       notify('Add a product name, price and available quantity.')
       return
     }
-    const priceNumber = Number(newListing.price.replace(/[^0-9.]/g, ''))
-    setProducts((current) => [
-      {
-        id: Date.now(),
-        name: newListing.name,
-        category: newListing.category,
-        price: `৳${newListing.price} / ${newListing.unit}`,
-        priceNumber,
-        location: newListing.location,
-        seller: 'Md. Rahim Uddin',
-        rating: 5,
-        quantity: `${newListing.quantity} ${newListing.unit} available`,
-        description:
-          newListing.description ||
-          'Fresh local agricultural product listed directly by the farmer.',
-        delivery: 'Pickup or local delivery',
-        posted: 'Just now',
-      },
-      ...current,
-    ])
-    setListingOpen(false)
-    setFilter('All')
-    setSort('Newest')
-    setNewListing({
-      name: '',
-      category: 'Produce',
-      price: '',
-      unit: 'kg',
-      quantity: '',
-      location: 'Chattogram',
-      description: '',
-    })
-    notify('Your product is now live in the marketplace.')
+    const price = Number(newListing.price.replace(/[^0-9.]/g, ''))
+    const quantity = Number(newListing.quantity)
+    if (!Number.isFinite(price) || price < 0 || !Number.isFinite(quantity) || quantity <= 0) {
+      notify('Enter a valid price and a quantity greater than zero.')
+      return
+    }
+    const category =
+      newListing.category === 'Produce'
+        ? 'produce'
+        : newListing.category === 'Equipment'
+          ? 'equipment'
+          : newListing.category === 'Inputs'
+            ? 'inputs'
+            : 'other'
+    const unit = newListing.unit === 'unit' ? 'piece' : newListing.unit
+    try {
+      const response = await fetch('/api/marketplace-listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: newListing.name.trim(),
+          description: newListing.description.trim() || 'Agricultural product listed on AgTech.',
+          category,
+          price,
+          quantity,
+          unit,
+          location: newListing.location,
+        }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(
+          data.errors?.[0]?.message ||
+            data.message ||
+            'Sign in with a farmer account before creating a listing.',
+        )
+      }
+      setListingOpen(false)
+      setNewListing({
+        name: '',
+        category: 'Produce',
+        price: '',
+        unit: 'kg',
+        quantity: '',
+        location: 'Chattogram',
+        description: '',
+      })
+      notify('Your listing was submitted. It will appear after marketplace review.')
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Your listing could not be submitted.')
+    }
   }
   return (
     <PageFrame>
@@ -2794,7 +2867,7 @@ function Marketplace({ notify }: { notify: (s: string) => void }) {
         </label>
       </div>
       <div className="market-results">
-        <span>{visibleProducts.length} listings found</span>
+        <span>{loadingListings ? "Loading listings…" : `${visibleProducts.length} listings found`}</span>
         {saved.length > 0 && (
           <button onClick={() => notify(`${saved.length} saved marketplace listings.`)}>
             <Icon name="book" size={14} /> {saved.length} saved
