@@ -133,5 +133,31 @@ export const Users: CollectionConfig = {
       name: 'location',
       type: 'text',
     },
+    // Private, short-lived password recovery state. These fields are only
+    // read/written by the server-side recovery route.
+    {
+      name: 'resetOtpHash',
+      type: 'text',
+      admin: { hidden: true },
+      access: { create: () => false, read: () => false, update: () => false },
+    },
+    {
+      name: 'resetOtpExpiresAt',
+      type: 'date',
+      admin: { hidden: true },
+      access: { create: () => false, read: () => false, update: () => false },
+    },
+    {
+      name: 'resetOtpLastSentAt',
+      type: 'date',
+      admin: { hidden: true },
+      access: { create: () => false, read: () => false, update: () => false },
+    },
+    {
+      name: 'resetOtpPayloadToken',
+      type: 'text',
+      admin: { hidden: true },
+      access: { create: () => false, read: () => false, update: () => false },
+    },
   ],
 }
