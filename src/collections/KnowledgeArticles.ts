@@ -5,7 +5,7 @@ const isAdmin = ({ req }: { req: { user?: { collection?: string } | null } }) =>
 
 const canManageArticles: Access = ({ req }) => {
   if (req.user?.collection === 'admins') return true
-  if (req.user?.collection !== 'users' || req.user.role !== 'agronomist') return false
+  if (req.user?.collection !== 'users') return false
   const where: Where = { author: { equals: req.user.id } }
   return where
 }
@@ -18,18 +18,9 @@ export const KnowledgeArticles: CollectionConfig = {
     group: 'Knowledge Hub',
   },
   access: {
-    create: ({ req }) =>
-      req.user?.collection === 'admins' ||
-      (req.user?.collection === 'users' && req.user.role === 'agronomist'),
+    create: ({ req }) => req.user?.collection === 'admins' || req.user?.collection === 'users',
     read: ({ req }) => {
       if (req.user?.collection === 'admins') return true
-      if (req.user?.collection === 'users' && req.user.role === 'agronomist') {
-        const conditions: Where[] = [
-          { status: { equals: 'published' } },
-          { author: { equals: req.user.id } },
-        ]
-        return { or: conditions }
-      }
       const where: Where = { status: { equals: 'published' } }
       return where
     },
@@ -41,7 +32,7 @@ export const KnowledgeArticles: CollectionConfig = {
       ({ data, operation, req }) => {
         if (!data || operation !== 'create') return data
         if (req.user?.collection === 'users') {
-          return { ...data, author: req.user.id, status: 'draft' }
+          return { ...data, author: req.user.id, status: 'published' }
         }
         return data
       },
@@ -78,13 +69,12 @@ export const KnowledgeArticles: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
-      defaultValue: 'draft',
+      defaultValue: 'published',
       access: {
         create: () => true,
         update: isAdmin,
       },
       options: [
-        { label: 'Draft', value: 'draft' },
         { label: 'Published', value: 'published' },
         { label: 'Archived', value: 'archived' },
       ],
