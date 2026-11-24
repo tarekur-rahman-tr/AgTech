@@ -35,7 +35,7 @@ export const ConsultationRequests: CollectionConfig = {
     group: 'Agronomist Support',
   },
   access: {
-    create: ({ req }) => req.user?.collection === 'users',
+    create: ({ req }) => req.user?.collection === 'users' && req.user.role === 'farmer',
     read: canReadRequest,
     update: canUpdateRequest,
     delete: isAdmin,
@@ -44,7 +44,7 @@ export const ConsultationRequests: CollectionConfig = {
     beforeValidate: [
       ({ data, operation, req }) => {
         if (!data || operation !== 'create') return data
-        if (req.user?.collection === 'users') {
+        if (req.user?.collection === 'users' && req.user.role === 'farmer') {
           return {
             ...data,
             farmer: req.user.id,
