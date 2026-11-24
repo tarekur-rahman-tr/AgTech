@@ -11,6 +11,7 @@ import { Media } from './collections/Media'
 import { Folders } from './collections/Folders'
 import { Tags } from './collections/Tags'
 import { MarketplaceListings } from './collections/MarketplaceListings'
+import { MarketplaceInquiries } from './collections/MarketplaceInquiries'
 import { KnowledgeArticles } from './collections/KnowledgeArticles'
 import { ConsultationRequests } from './collections/ConsultationRequests'
 import { WeatherAlerts } from './collections/WeatherAlerts'
@@ -52,7 +53,7 @@ const payloadConfig = {
     fallbackLanguage: 'en' as const,
     supportedLanguages: { en: adminLanguage },
   },
-  collections: [Admins, Users, Media, Folders, Tags, MarketplaceListings, KnowledgeArticles, ConsultationRequests, WeatherAlerts],
+  collections: [Admins, Users, Media, Folders, Tags, MarketplaceListings, MarketplaceInquiries, KnowledgeArticles, ConsultationRequests, WeatherAlerts],
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
