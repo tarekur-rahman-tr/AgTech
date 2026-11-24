@@ -1,4 +1,5 @@
 import path from 'path'
+import { createHash } from 'node:crypto'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { buildFigmaConfig } from '@payloadcms/figma'
 import { mcpPlugin } from '@payloadcms/plugin-mcp'
@@ -62,6 +63,38 @@ const payloadConfig = {
     fallback: true,
     defaultLocale: 'en',
   },
+  endpoints: [
+    {
+      path: '/cloudinary/signature',
+      method: 'post',
+      handler: async (req) => {
+        const user = req.user as (typeof req.user & { collection?: string }) | null | undefined
+        if (!user || !['users', 'admins'].includes(user.collection || '')) {
+          return Response.json({ error: 'Authentication required.' }, { status: 401 })
+        }
+
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME
+        const apiKey = process.env.CLOUDINARY_API_KEY
+        const apiSecret = process.env.CLOUDINARY_API_SECRET
+        if (!cloudName || !apiKey || !apiSecret) {
+          return Response.json({ error: 'Cloudinary is not configured on the server.' }, { status: 503 })
+        }
+
+        const timestamp = Math.floor(Date.now() / 1000)
+        const folder = `agtech/users/${String(user.id)}`
+        const signedParams = { folder, timestamp }
+        const signatureBase = Object.entries(signedParams)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, value]) => `${key}=${value}`)
+          .join('&')
+        const signature = createHash('sha1')
+          .update(`${signatureBase}${apiSecret}`)
+          .digest('hex')
+
+        return Response.json({ cloudName, apiKey, timestamp, folder, signature })
+      },
+    },
+  ],
   plugins: [mcpPlugin({})],
 }
 
