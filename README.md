@@ -44,9 +44,9 @@ Run `pnpm build` before `pnpm start`.
 
 ## Backend setup
 
-The app now uses Payload CMS with Neon PostgreSQL for user authentication and admin management. Follow [docs/BACKEND_SETUP.md](docs/BACKEND_SETUP.md) for environment variables, first-admin setup, role approval, and production migrations.
+The app now uses Payload CMS with Neon PostgreSQL for user authentication and admin management. Follow [docs/BACKEND_SETUP.md](docs/BACKEND_SETUP.md) for environment variables, first-admin setup, account roles, and production migrations.
 
-The public registration form creates Farmer accounts by default. Agronomist and Business role requests must be approved by an administrator in Payload Admin.
+Public registration supports Farmer, Agronomist, and Business accounts directly. Admin is a separate private account used for platform management and moderation.
 
 ## AI plant disease diagnosis (optional)
 
