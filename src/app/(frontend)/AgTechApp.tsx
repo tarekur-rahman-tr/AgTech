@@ -4403,7 +4403,7 @@ function Login({
             email: email.trim().toLowerCase(),
             password,
             phone: phone.trim() || undefined,
-            requestedRole: role.toLowerCase(),
+            role: role.toLowerCase(),
           }),
         })
         const registerData = await registerResponse.json().catch(() => ({}))
@@ -4444,11 +4444,7 @@ function Login({
             : 'Farmer'
 
       onAuthenticate(verifiedRole)
-      if (mode === 'register' && role !== 'Farmer' && verifiedRole === 'Farmer') {
-        notify('Account created. Your requested professional role needs administrator approval.')
-      } else {
-        notify(mode === 'login' ? 'You are signed in.' : 'Your AgTech account is ready.')
-      }
+      notify(mode === 'login' ? 'You are signed in.' : `Your ${verifiedRole} account is ready.`)
       go('Dashboard')
     } catch (submitError) {
       setError(
