@@ -31,14 +31,19 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [
-      ({ data, req }) => {
+      ({ data, operation, req }) => {
         if (!data || req.user?.collection === 'admins') return data
 
-        // Never trust a role supplied by a public registration/update request.
-        return {
-          ...data,
-          role: 'farmer',
+        // Force the farmer role only at public account creation.
+        // Do not overwrite an administrator-approved role on later profile updates.
+        if (operation === 'create') {
+          return {
+            ...data,
+            role: 'farmer',
+          }
         }
+
+        return data
       },
     ],
   },
