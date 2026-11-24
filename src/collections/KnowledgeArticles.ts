@@ -5,7 +5,7 @@ const isAdmin = ({ req }: { req: { user?: { collection?: string } | null } }) =>
 
 const canManageArticles: Access = ({ req }) => {
   if (req.user?.collection === 'admins') return true
-  if (req.user?.collection !== 'users') return false
+  if (req.user?.collection !== 'users' || req.user.role !== 'agronomist') return false
   const where: Where = { author: { equals: req.user.id } }
   return where
 }
@@ -18,11 +18,20 @@ export const KnowledgeArticles: CollectionConfig = {
     group: 'Knowledge Hub',
   },
   access: {
-    create: ({ req }) => req.user?.collection === 'admins' || req.user?.collection === 'users',
+    create: ({ req }) =>
+      req.user?.collection === 'admins' ||
+      (req.user?.collection === 'users' && req.user.role === 'agronomist'),
     read: ({ req }) => {
       if (req.user?.collection === 'admins') return true
-      const where: Where = { status: { equals: 'published' } }
-      return where
+      if (req.user?.collection === 'users' && req.user.role === 'agronomist') {
+        return {
+          or: [
+            { status: { equals: 'published' } },
+            { author: { equals: req.user.id } },
+          ],
+        }
+      }
+      return { status: { equals: 'published' } }
     },
     update: canManageArticles,
     delete: isAdmin,
@@ -31,8 +40,9 @@ export const KnowledgeArticles: CollectionConfig = {
     beforeValidate: [
       ({ data, operation, req }) => {
         if (!data || operation !== 'create') return data
-        if (req.user?.collection === 'users') {
-          return { ...data, author: req.user.id, status: 'published' }
+        if (req.user?.collection === 'users' && req.user.role === 'agronomist') {
+          // Agronomist articles remain private drafts until an admin publishes them.
+          return { ...data, author: req.user.id, status: 'draft' }
         }
         return data
       },
@@ -69,16 +79,20 @@ export const KnowledgeArticles: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
-      defaultValue: 'published',
+      defaultValue: 'draft',
       access: {
         create: () => true,
         update: isAdmin,
       },
       options: [
+        { label: 'Draft', value: 'draft' },
         { label: 'Published', value: 'published' },
         { label: 'Archived', value: 'archived' },
       ],
-      admin: { position: 'sidebar' },
+      admin: {
+        position: 'sidebar',
+        description: 'Only administrators can publish or archive an article.',
+      },
     },
   ],
   timestamps: true,
