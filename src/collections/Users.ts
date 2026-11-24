@@ -13,7 +13,7 @@ export const Users: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'fullName',
-    defaultColumns: ['fullName', 'email', 'role', 'createdAt'],
+    defaultColumns: ['fullName', 'email', 'role', 'status', 'createdAt'],
   },
   access: {
     create: ({ req }) => !req.user || req.user.collection === 'admins',
@@ -44,6 +44,8 @@ export const Users: CollectionConfig = {
           return {
             ...data,
             role,
+            // Every public signup starts in the moderation queue.
+            status: 'pending',
           }
         }
 
@@ -97,6 +99,25 @@ export const Users: CollectionConfig = {
         { label: 'Farmer', value: 'farmer' },
         { label: 'Agronomist', value: 'agronomist' },
         { label: 'Business', value: 'business' },
+      ],
+    },
+    {
+      name: 'status',
+      type: 'select',
+      required: true,
+      defaultValue: 'approved',
+      access: {
+        create: ({ req }) => req.user?.collection === 'admins',
+        update: ({ req }) => req.user?.collection === 'admins',
+      },
+      admin: {
+        description: 'New public accounts start Pending. Admins can approve or suspend accounts here.',
+        position: 'sidebar',
+      },
+      options: [
+        { label: 'Pending approval', value: 'pending' },
+        { label: 'Approved', value: 'approved' },
+        { label: 'Suspended', value: 'suspended' },
       ],
     },
     {
