@@ -1,11 +1,12 @@
-import type { Access, CollectionConfig } from 'payload'
+import type { Access, CollectionConfig, Where } from 'payload'
 
 const isAdmin: Access = ({ req }) => req.user?.collection === 'admins'
 
 const canManageOwnListing: Access = ({ req }) => {
   if (req.user?.collection === 'admins') return true
   if (req.user?.collection !== 'users') return false
-  return { seller: { equals: req.user.id } }
+  const where: Where = { seller: { equals: req.user.id } }
+  return where
 }
 
 export const MarketplaceListings: CollectionConfig = {
@@ -20,14 +21,14 @@ export const MarketplaceListings: CollectionConfig = {
     read: ({ req }) => {
       if (req.user?.collection === 'admins') return true
       if (req.user?.collection === 'users') {
-        return {
-          or: [
-            { status: { equals: 'active' } },
-            { seller: { equals: req.user.id } },
-          ],
-        }
+        const conditions: Where[] = [
+          { status: { equals: 'active' } },
+          { seller: { equals: req.user.id } },
+        ]
+        return { or: conditions }
       }
-      return { status: { equals: 'active' } }
+      const where: Where = { status: { equals: 'active' } }
+      return where
     },
     update: canManageOwnListing,
     delete: canManageOwnListing,
