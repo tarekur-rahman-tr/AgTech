@@ -1,11 +1,12 @@
-import type { Access, CollectionConfig } from 'payload'
+import type { Access, CollectionConfig, Where } from 'payload'
 
 const isAdmin: Access = ({ req }) => req.user?.collection === 'admins'
 
 const canManageArticles: Access = ({ req }) => {
   if (req.user?.collection === 'admins') return true
   if (req.user?.collection !== 'users' || req.user.role !== 'agronomist') return false
-  return { author: { equals: req.user.id } }
+  const where: Where = { author: { equals: req.user.id } }
+  return where
 }
 
 export const KnowledgeArticles: CollectionConfig = {
@@ -22,14 +23,14 @@ export const KnowledgeArticles: CollectionConfig = {
     read: ({ req }) => {
       if (req.user?.collection === 'admins') return true
       if (req.user?.collection === 'users' && req.user.role === 'agronomist') {
-        return {
-          or: [
-            { status: { equals: 'published' } },
-            { author: { equals: req.user.id } },
-          ],
-        }
+        const conditions: Where[] = [
+          { status: { equals: 'published' } },
+          { author: { equals: req.user.id } },
+        ]
+        return { or: conditions }
       }
-      return { status: { equals: 'published' } }
+      const where: Where = { status: { equals: 'published' } }
+      return where
     },
     update: canManageArticles,
     delete: isAdmin,
@@ -70,7 +71,7 @@ export const KnowledgeArticles: CollectionConfig = {
       relationTo: 'users',
       required: true,
       index: true,
-      access: { update: isAdmin },
+      access: { update: ({ req }) => req.user?.collection === 'admins' },
     },
     {
       name: 'status',
