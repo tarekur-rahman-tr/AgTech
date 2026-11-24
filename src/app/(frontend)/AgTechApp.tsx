@@ -4610,6 +4610,9 @@ function Login({
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [recoveryStep, setRecoveryStep] = useState<'none' | 'request' | 'verify'>('none')
+  const [otp, setOtp] = useState('')
+  const [newPassword, setNewPassword] = useState('')
 
   const submit = async () => {
     if (busy) return
@@ -4688,6 +4691,69 @@ function Login({
           ? submitError.message
           : 'Something went wrong. Please try again.',
       )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const sendRecoveryCode = async () => {
+    if (busy) return
+    if (!email.trim()) {
+      setError('Enter your email address first.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch('/api/auth/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send', email: email.trim().toLowerCase() }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message || 'Could not send the verification code.')
+      setRecoveryStep('verify')
+      setOtp('')
+      notify(data.message || 'Verification code sent.')
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Could not send the verification code.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const completePasswordReset = async () => {
+    if (busy) return
+    if (!/^\d{6}$/.test(otp)) {
+      setError('Enter the 6-digit verification code.')
+      return
+    }
+    if (newPassword.length < 8) {
+      setError('Your new password must contain at least 8 characters.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch('/api/auth/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset',
+          email: email.trim().toLowerCase(),
+          otp,
+          password: newPassword,
+        }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message || 'Could not reset your password.')
+      setRecoveryStep('none')
+      setPassword('')
+      setNewPassword('')
+      setOtp('')
+      notify(data.message || 'Password reset successful. Please sign in.')
+    } catch (resetError) {
+      setError(resetError instanceof Error ? resetError.message : 'Could not reset your password.')
     } finally {
       setBusy(false)
     }
@@ -4794,52 +4860,124 @@ function Login({
             autoComplete="email"
           />
         </label>
-        <label>
-          <span>Password</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="At least 8 characters"
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            minLength={8}
-          />
-        </label>
-        {mode === 'login' && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
+        {mode === 'login' && recoveryStep !== 'none' ? (
+          <div style={{ display: 'grid', gap: 14 }}>
+            <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--muted, #647067)' }}>
+              {recoveryStep === 'request'
+                ? 'We will send a 6-digit code to your email. The code is valid for 2 minutes.'
+                : `Enter the 6-digit code sent to ${email} and choose a new password.`}
+            </p>
+            {recoveryStep === 'verify' && (
+              <>
+                <label>
+                  <span>6-digit verification code</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                  />
+                </label>
+                <label>
+                  <span>New password</span>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    placeholder="At least 8 characters"
+                    autoComplete="new-password"
+                    minLength={8}
+                  />
+                </label>
+              </>
+            )}
+            {error && (
+              <p role="alert" style={{ color: '#b42318', fontSize: 13, lineHeight: 1.5 }}>
+                {error}
+              </p>
+            )}
+            <Button onClick={() => void (recoveryStep === 'request' ? sendRecoveryCode() : completePasswordReset())}>
+              {busy
+                ? 'Please wait...'
+                : recoveryStep === 'request'
+                  ? 'Send verification code'
+                  : 'Verify code & reset password'}{' '}
+              <Icon name="arrow" />
+            </Button>
+            {recoveryStep === 'verify' && (
+              <button
+                type="button"
+                onClick={() => void sendRecoveryCode()}
+                style={{ background: 'none', border: 0, color: 'var(--accent, #287a45)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+              >
+                Resend code
+              </button>
+            )}
             <button
               type="button"
-              onClick={() =>
-                setError('Password recovery is being configured. Please contact the AgTech administrator for now.')
-              }
-              style={{
-                background: 'none',
-                border: 0,
-                padding: '4px 0',
-                color: 'var(--accent, #287a45)',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
+              onClick={() => {
+                setRecoveryStep('none')
+                setError('')
               }}
+              style={{ background: 'none', border: 0, color: 'var(--muted, #647067)', cursor: 'pointer', fontSize: 13 }}
             >
-              Forgot password?
+              Back to sign in
             </button>
           </div>
+        ) : (
+          <>
+            <label>
+              <span>Password</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="At least 8 characters"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                minLength={8}
+              />
+            </label>
+            {mode === 'login' && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecoveryStep('request')
+                    setError('')
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 0,
+                    padding: '4px 0',
+                    color: 'var(--accent, #287a45)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+            {error && (
+              <p role="alert" style={{ color: '#b42318', fontSize: 13, lineHeight: 1.5 }}>
+                {error}
+              </p>
+            )}
+            <Button onClick={() => void submit()}>
+              {busy
+                ? 'Please wait...'
+                : mode === 'login'
+                  ? 'Sign in to AgTech'
+                  : 'Create my account'}{' '}
+              <Icon name="arrow" />
+            </Button>
+          </>
         )}
-        {error && (
-          <p role="alert" style={{ color: '#b42318', fontSize: 13, lineHeight: 1.5 }}>
-            {error}
-          </p>
-        )}
-        <Button onClick={() => void submit()}>
-          {busy
-            ? 'Please wait...'
-            : mode === 'login'
-              ? 'Sign in to AgTech'
-              : 'Create my account'}{' '}
-          <Icon name="arrow" />
-        </Button>
-        <p className="terms">
+                <p className="terms">
           By continuing, you agree to AgTech’s Terms and Privacy Policy. Authentication is handled
           securely by AgTech.
         </p>
