@@ -73,7 +73,8 @@ Sign in with the administrator email and password you configured.
 - In Payload Admin, open **Users** and review the **Status** field. Set a new account to **Approved** to allow login, or **Suspended** to block login. Pending and suspended accounts receive a clear login error.
 - Admin is a separate, private authentication collection. There is no Admin option on the public registration form, and the first Admin is created only from the trusted server terminal with `pnpm admin:create`.
 - Admin is for platform operations: managing accounts, moderating content and media, and reviewing marketplace listings.
-- Marketplace listings are stored in the `marketplace-listings` collection. A signed-in user can create a listing; it is assigned to that user and starts as **Pending review**. Only an administrator can publish, reject, or mark a listing as sold. Public visitors can read active listings; a seller can also read their own pending or rejected listings. Normal Farmers, Agronomists, and Businesses do not need Admin access.
+- Marketplace listings are stored in the `marketplace-listings` collection. A signed-in user can create a listing; it is assigned to that user and starts as **Pending review**. Only an administrator can publish, reject, or mark a listing as sold. Public visitors can read active listings; a seller can also read their own pending or rejected listings.
+- Agronomists can create knowledge articles in the `knowledge-articles` collection. Their articles start as **Draft**; an administrator controls publication. Published articles are publicly readable. Normal Farmers, Agronomists, and Businesses do not need Admin access.
 - The frontend uses the role returned by the authenticated server session, not a role kept only in browser state.
 - User passwords are handled by Payload authentication. The browser uses the Payload HTTP-only session cookie; the frontend does not store passwords or authentication tokens in localStorage.
 
