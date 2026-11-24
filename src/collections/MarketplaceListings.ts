@@ -28,8 +28,7 @@ export const MarketplaceListings: CollectionConfig = {
         ]
         return { or: conditions }
       }
-      const where: Where = { status: { equals: 'active' } }
-      return where
+      return { status: { equals: 'active' } }
     },
     update: canManageOwnListing,
     delete: canManageOwnListing,
@@ -42,7 +41,8 @@ export const MarketplaceListings: CollectionConfig = {
           return {
             ...data,
             seller: req.user.id,
-            status: 'active',
+            // New seller listings must be reviewed before becoming public.
+            status: 'pending-review',
           }
         }
         return data
@@ -50,18 +50,8 @@ export const MarketplaceListings: CollectionConfig = {
     ],
   },
   fields: [
-    {
-      name: 'title',
-      type: 'text',
-      required: true,
-      maxLength: 120,
-    },
-    {
-      name: 'description',
-      type: 'textarea',
-      required: true,
-      maxLength: 3000,
-    },
+    { name: 'title', type: 'text', required: true, maxLength: 120 },
+    { name: 'description', type: 'textarea', required: true, maxLength: 3000 },
     {
       name: 'category',
       type: 'select',
@@ -81,12 +71,7 @@ export const MarketplaceListings: CollectionConfig = {
       min: 0,
       admin: { description: 'Price in Bangladeshi Taka (BDT).' },
     },
-    {
-      name: 'quantity',
-      type: 'number',
-      required: true,
-      min: 0,
-    },
+    { name: 'quantity', type: 'number', required: true, min: 0 },
     {
       name: 'unit',
       type: 'select',
@@ -99,15 +84,8 @@ export const MarketplaceListings: CollectionConfig = {
         { label: 'Litre', value: 'litre' },
       ],
     },
-    {
-      name: 'location',
-      type: 'text',
-      required: true,
-    },
-    {
-      name: 'contactPhone',
-      type: 'text',
-    },
+    { name: 'location', type: 'text', required: true },
+    { name: 'contactPhone', type: 'text' },
     {
       name: 'images',
       type: 'upload',
@@ -127,16 +105,21 @@ export const MarketplaceListings: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
-      defaultValue: 'active',
+      defaultValue: 'pending-review',
       access: {
         create: () => true,
         update: isAdmin,
       },
       options: [
+        { label: 'Pending review', value: 'pending-review' },
         { label: 'Active', value: 'active' },
+        { label: 'Rejected', value: 'rejected' },
         { label: 'Sold', value: 'sold' },
       ],
-      admin: { position: 'sidebar' },
+      admin: {
+        position: 'sidebar',
+        description: 'Only administrators can approve, reject, or mark a listing as sold.',
+      },
     },
   ],
   timestamps: true,
