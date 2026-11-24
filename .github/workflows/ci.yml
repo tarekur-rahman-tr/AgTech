@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Payload types
+        run: pnpm generate:types
+        env:
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/agtech_ci
+          PAYLOAD_SECRET: ci-only-secret-do-not-use-in-production
+
       - name: Type check
         run: pnpm typecheck
 
