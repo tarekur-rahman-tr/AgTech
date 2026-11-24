@@ -72,7 +72,7 @@ export const MarketplaceInquiries: CollectionConfig = {
       type: 'relationship',
       relationTo: 'marketplace-listings',
       required: true,
-      access: { update: isAdmin },
+      access: { update: ({ req }) => req.user?.collection === 'admins' },
     },
     {
       name: 'buyer',
