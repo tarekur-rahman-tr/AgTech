@@ -119,3 +119,18 @@ The core email/password registration and login flow is connected. These optional
 - SMS/OTP sign-in.
 - Two-factor authentication.
 AI diagnosis remains separate and uses `APP_GEMINI_API_KEY` and `APP_GEMINI_API_BASE_URL` when configured.
+
+## 8. Password reset OTP testing with Resend
+
+The public sign-in screen includes a Forgot Password flow. It sends a six-digit code, expires it after two minutes, verifies the code, and then uses Payload's password-reset operation to set the new password.
+
+For no-domain development testing, add these variables to the local `.env.local` file (never commit that file):
+
+```env
+RESEND_API_KEY=re_your_private_key
+RESEND_TEST_RECIPIENT="your-verified-resend-account-email@example.com"
+```
+
+Use `onboarding@resend.dev` as the test sender. The route intentionally restricts test sends to the configured Resend account email. The recipient must also have an AgTech user account to complete a password reset. Restart the Next.js server after changing environment variables.
+
+This is a testing restriction, not production email configuration. To send password-reset messages to arbitrary Farmer, Agronomist, and Business email addresses, verify a domain in Resend and replace the test sender with an address on that verified domain.
