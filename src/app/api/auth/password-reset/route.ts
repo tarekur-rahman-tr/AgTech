@@ -118,6 +118,7 @@ export async function POST(request: Request) {
           resetOtpExpiresAt: expiresAt,
           resetOtpLastSentAt: sentAt,
           resetOtpPayloadToken: resetToken,
+          resetOtpAttempts: 0,
         },
         overrideAccess: true,
       })
@@ -147,16 +148,33 @@ export async function POST(request: Request) {
       const storedHash = String(user?.resetOtpHash ?? '')
       const resetToken = String(user?.resetOtpPayloadToken ?? '')
 
-      if (
-        !user ||
-        !storedHash ||
-        !resetToken ||
-        !expiresAt ||
-        Date.now() > expiresAt ||
-        !safeCompare(storedHash, otpDigest(email, otp))
-      ) {
+      const attempts = Number(user?.resetOtpAttempts ?? 0)
+      const validCode =
+        Boolean(user && storedHash && resetToken && expiresAt && Date.now() <= expiresAt) &&
+        safeCompare(storedHash, otpDigest(email, otp))
+
+      if (!validCode) {
+        if (user && storedHash && expiresAt && Date.now() <= expiresAt) {
+          const nextAttempts = attempts + 1
+          await payload.update({
+            collection: 'users',
+            id: user.id,
+            data: nextAttempts >= 5
+              ? {
+                  resetOtpHash: null,
+                  resetOtpExpiresAt: null,
+                  resetOtpPayloadToken: null,
+          resetOtpAttempts: 0,
+                  resetOtpAttempts: nextAttempts,
+                }
+              : { resetOtpAttempts: nextAttempts },
+            overrideAccess: true,
+          })
+        }
         return NextResponse.json(
-          { message: 'The code is invalid or expired. Request a new code and try again.' },
+          { message: attempts + 1 >= 5
+            ? 'Too many incorrect attempts. Request a new code.'
+            : 'The code is invalid or expired. Request a new code and try again.' },
           { status: 400 },
         )
       }
