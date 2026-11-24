@@ -2,7 +2,8 @@ import type { Access, CollectionConfig } from 'payload'
 
 import { createFolderField, createTagField } from 'payload'
 
-const isAdmin: Access = ({ req }) => req.user?.collection === 'admins'
+const isAdmin = ({ req }: { req: { user?: { collection?: string } | null } }) =>
+  req.user?.collection === 'admins'
 
 const canManageOwnMedia: Access = ({ req }) => {
   if (req.user?.collection === 'admins') return true
