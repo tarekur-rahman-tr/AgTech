@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import { APIError, type CollectionConfig } from 'payload'
 
 /**
  * Public users may register as Farmer, Agronomist, or Business.
@@ -30,6 +30,19 @@ export const Users: CollectionConfig = {
     delete: ({ req }) => req.user?.collection === 'admins',
   },
   hooks: {
+    beforeLogin: [
+      ({ user }) => {
+        // Older accounts without a status remain usable; new accounts must be approved.
+        const status = (user as { status?: string }).status
+        if (status === 'pending') {
+          throw new APIError('Your AgTech account is waiting for administrator approval.', 403)
+        }
+        if (status === 'suspended') {
+          throw new APIError('This AgTech account has been suspended. Contact the administrator.', 403)
+        }
+        return user
+      },
+    ],
     beforeValidate: [
       ({ data, operation, req }) => {
         if (!data || req.user?.collection === 'admins') return data
